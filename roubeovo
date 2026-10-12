@@ -1,75 +1,58 @@
--- Evil - Steal a Brainrot helper
--- Funciona em: Steal a Brainrot (e similares com EGG/Brainrot)
--- Teclas: botão flutuante abre/fecha
-
+-- Evil - Roube um Ovo (versão leve)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
 local Workspace = game:GetService("Workspace")
 local CoreGui = game:GetService("CoreGui")
-local LocalPlayer = Players.LocalPlayer
-local Camera = Workspace.CurrentCamera
+local LP = Players.LocalPlayer
+local Cam = Workspace.CurrentCamera
 
 local cfg = {
-    espBrainrots = false,
-    espPlayers = false,
     espEggs = false,
+    espPlayers = false,
     autoCollect = false,
-    teleportToEgg = false,
-    speed = false,
-    speedVal = 60,
-    fov = 120,
+    collectRadius = 20,
 }
 
 pcall(function()
     if CoreGui:FindFirstChild("EvilUI") then CoreGui.EvilUI:Destroy() end
 end)
 
-local ScreenGui = Instance.new("ScreenGui")
-ScreenGui.Name = "EvilUI"
-ScreenGui.ResetOnSpawn = false
-ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-local ok = pcall(function() ScreenGui.Parent = CoreGui end)
-if not ok or not ScreenGui.Parent then ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui") end
+local SG = Instance.new("ScreenGui")
+SG.Name = "EvilUI"
+SG.ResetOnSpawn = false
+local ok = pcall(function() SG.Parent = CoreGui end)
+if not ok or not SG.Parent then SG.Parent = LP:WaitForChild("PlayerGui") end
 
--- ============================================================
---  FLUTUANTE
--- ============================================================
+-- Flutuante
 local Float = Instance.new("TextButton")
 Float.Size = UDim2.new(0, 70, 0, 70)
 Float.Position = UDim2.new(0, 30, 0, 120)
 Float.BackgroundColor3 = Color3.fromRGB(15, 15, 17)
-Float.Text = ""
+Float.Text = "evil"
+Float.TextColor3 = Color3.fromRGB(240, 240, 245)
+Float.Font = Enum.Font.GothamBold
+Float.TextSize = 16
 Float.AutoButtonColor = false
-Float.Active = true
-Float.Parent = ScreenGui
+Float.Parent = SG
 Instance.new("UICorner", Float).CornerRadius = UDim.new(1, 0)
-local FS = Instance.new("UIStroke", Float)
-FS.Color = Color3.fromRGB(200, 200, 210)
-FS.Thickness = 2
-local FL = Instance.new("TextLabel", Float)
-FL.Size = UDim2.new(1, 0, 1, 0)
-FL.BackgroundTransparency = 1
-FL.Text = "evil"
-FL.TextColor3 = Color3.fromRGB(240, 240, 245)
-FL.Font = Enum.Font.GothamBold
-FL.TextSize = 18
+local FStk = Instance.new("UIStroke", Float)
+FStk.Color = Color3.fromRGB(200, 200, 210)
+FStk.Thickness = 2
 
--- ============================================================
---  MENU
--- ============================================================
+-- Menu
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 500, 0, 400)
+Main.Size = UDim2.new(0, 400, 0, 360)
 Main.Position = UDim2.new(0, 120, 0, 80)
 Main.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
 Main.BorderSizePixel = 0
 Main.Active = true
 Main.Visible = false
-Main.Parent = ScreenGui
+Main.Parent = SG
 Instance.new("UICorner", Main).CornerRadius = UDim.new(0, 10)
-local MS = Instance.new("UIStroke", Main)
-MS.Color = Color3.fromRGB(50, 50, 55)
-MS.Thickness = 1
+local MStk = Instance.new("UIStroke", Main)
+MStk.Color = Color3.fromRGB(50, 50, 55)
+MStk.Thickness = 1
 
 do
     local dg, ds, sp
@@ -127,16 +110,11 @@ TitleBar.Size = UDim2.new(1, 0, 0, 44)
 TitleBar.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
 TitleBar.BorderSizePixel = 0
 Instance.new("UICorner", TitleBar).CornerRadius = UDim.new(0, 10)
-local TitleFix = Instance.new("Frame", TitleBar)
-TitleFix.Size = UDim2.new(1, 0, 0, 12)
-TitleFix.Position = UDim2.new(0, 0, 1, -12)
-TitleFix.BackgroundColor3 = Color3.fromRGB(28, 28, 32)
-TitleFix.BorderSizePixel = 0
 local Title = Instance.new("TextLabel", TitleBar)
 Title.Size = UDim2.new(1, -60, 1, 0)
 Title.Position = UDim2.new(0, 16, 0, 0)
 Title.BackgroundTransparency = 1
-Title.Text = "evil - steal a brainrot"
+Title.Text = "evil - roube um ovo"
 Title.TextColor3 = Color3.fromRGB(240, 240, 245)
 Title.Font = Enum.Font.GothamBold
 Title.TextSize = 15
@@ -218,141 +196,156 @@ local function slider(label, mn, mx, d, cb)
     end)
 end
 
--- Binds
-toggle("ESP Brainrots", cfg.espBrainrots, function(v) cfg.espBrainrots = v end)
-toggle("ESP Players", cfg.espPlayers, function(v) cfg.espPlayers = v end)
 toggle("ESP Eggs", cfg.espEggs, function(v) cfg.espEggs = v end)
+toggle("ESP Players", cfg.espPlayers, function(v) cfg.espPlayers = v end)
 toggle("Auto Collect", cfg.autoCollect, function(v) cfg.autoCollect = v end)
-toggle("Auto Steal (toca pra roubar)", cfg.teleportToEgg, function(v) cfg.teleportToEgg = v end)
-toggle("WalkSpeed Boost", cfg.speed, function(v) cfg.speed = v end)
-slider("Speed", 16, 200, cfg.speedVal, function(v) cfg.speedVal = v end)
-slider("FOV", 30, 500, cfg.fov, function(v) cfg.fov = v end)
+slider("Collect Radius", 5, 100, cfg.collectRadius, function(v) cfg.collectRadius = v end)
 
 -- ============================================================
---  ESP
+--  ESP — leve, cache atualizado a cada 1s
 -- ============================================================
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
+local eggList = {}
+local playerList = {}
 
-local function mkESP(inst)
-    if not hasDrawing then return end
-    local d = {}
-    d.Box = Drawing.new("Square"); d.Box.Thickness = 1; d.Box.Filled = false; d.Box.Transparency = 1; d.Box.Visible = false
-    d.Name = Drawing.new("Text"); d.Name.Size = 13; d.Name.Center = true; d.Name.Outline = true; d.Name.Visible = false
-    Cache[inst] = d
+local function createBox(color)
+    local b = Drawing.new("Square")
+    b.Thickness = 1
+    b.Filled = false
+    b.Transparency = 1
+    b.Visible = false
+    return b
 end
 
-local function clearESP(inst)
+local function createName(color)
+    local t = Drawing.new("Text")
+    t.Size = 13
+    t.Center = true
+    t.Outline = true
+    t.Visible = false
+    return t
+end
+
+local function ensureEntry(inst)
+    if not Cache[inst] then
+        Cache[inst] = {
+            box = createBox(),
+            label = createName(),
+        }
+    end
+    return Cache[inst]
+end
+
+local function removeEntry(inst)
     if Cache[inst] then
-        for _, o in pairs(Cache[inst]) do pcall(function() o:Remove() end) end
+        pcall(function() Cache[inst].box:Remove() end)
+        pcall(function() Cache[inst].label:Remove() end)
         Cache[inst] = nil
     end
 end
 
-local function w2v(pos)
-    local s, _ = Camera:WorldToViewportPoint(pos)
-    return Vector2.new(s.X, s.Y)
-end
+-- Scan do mundo — roda 1x por segundo, não a cada frame
+task.spawn(function()
+    while SG.Parent do
+        local eggs, players = {}, {}
 
-local function drawESP()
-    local seen = {}
-    local function process(inst, color, label)
-        if not inst or not inst.Parent then return end
-        local part = inst:IsA("Model") and (inst.PrimaryPart or inst:FindFirstChildWhichIsA("BasePart")) or (inst:IsA("BasePart") and inst)
-        if not part then return end
-        seen[inst] = true
-        if not Cache[inst] then mkESP(inst) end
-        local e = Cache[inst]
-        local pos, on = Camera:WorldToViewportPoint(part.Position)
-        if not on then
-            e.Box.Visible = false; e.Name.Visible = false
-            return
-        end
-        local size = 40
-        e.Box.Size = Vector2.new(size, size)
-        e.Box.Position = Vector2.new(pos.X - size/2, pos.Y - size/2)
-        e.Box.Color = color
-        e.Box.Visible = true
-        e.Name.Text = label
-        e.Name.Position = Vector2.new(pos.X, pos.Y - size/2 - 14)
-        e.Name.Color = color
-        e.Name.Visible = true
-    end
-
-    if cfg.espBrainrots then
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") and (obj.Name:lower():find("brainrot") or obj.Name:lower():find("character")) and not Players:GetPlayerFromCharacter(obj) then
-                process(obj, Color3.fromRGB(255, 200, 100), obj.Name)
+        for _, obj in ipairs(Workspace:GetChildren()) do
+            local n = obj.Name:lower()
+            if obj:IsA("Model") and (n:find("egg") or n:find("brainrot")) then
+                eggs[#eggs + 1] = obj
             end
         end
-    end
 
-    if cfg.espPlayers then
         for _, p in ipairs(Players:GetPlayers()) do
-            if p ~= LocalPlayer and p.Character then
-                process(p.Character, Color3.fromRGB(255, 100, 100), p.Name)
+            if p ~= LP and p.Character then
+                players[#players + 1] = p.Character
             end
         end
-    end
 
-    if cfg.espEggs then
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name:lower():find("egg") then
-                process(obj, Color3.fromRGB(100, 220, 255), obj.Name)
-            end
-        end
-    end
-
-    for inst, _ in pairs(Cache) do
-        if not seen[inst] then clearESP(inst) end
-    end
-end
-
-RunService.RenderStepped:Connect(drawESP)
-
--- ============================================================
---  AUTO COLLECT / AUTO STEAL
--- ============================================================
-RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-
-    if cfg.autoCollect then
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("BasePart") and (obj.Name:lower():find("collect") or obj.Name:lower():find("pickup")) then
-                pcall(function()
-                    firetouchinterest(hrp, obj, 0)
-                    firetouchinterest(hrp, obj, 1)
-                end)
-            end
-        end
-    end
-
-    if cfg.teleportToEgg then
-        local nearest, dist = nil, math.huge
-        for _, obj in ipairs(Workspace:GetDescendants()) do
-            if obj:IsA("Model") and obj.Name:lower():find("egg") and obj.PrimaryPart then
-                local d = (obj.PrimaryPart.Position - hrp.Position).Magnitude
-                if d < dist then dist = d; nearest = obj end
-            end
-        end
-        if nearest and nearest.PrimaryPart then
-            hrp.CFrame = CFrame.new(nearest.PrimaryPart.Position + Vector3.new(0, 5, 0))
-        end
+        eggList = eggs
+        playerList = players
+        task.wait(1)
     end
 end)
 
+local function drawList(list, enabled, color)
+    if not hasDrawing then return end
+    for _, inst in ipairs(list) do
+        if not inst.Parent then
+            removeEntry(inst)
+        elseif enabled then
+            local part = inst:IsA("Model") and (inst.PrimaryPart or inst:FindFirstChildWhichIsA("BasePart")) or inst
+            if part then
+                local pos, on = Cam:WorldToViewportPoint(part.Position)
+                local e = ensureEntry(inst)
+                if on then
+                    local size = 40
+                    e.box.Size = Vector2.new(size, size)
+                    e.box.Position = Vector2.new(pos.X - size/2, pos.Y - size/2)
+                    e.box.Color = color
+                    e.box.Visible = true
+                    e.label.Text = inst.Name
+                    e.label.Position = Vector2.new(pos.X, pos.Y - size/2 - 14)
+                    e.label.Color = color
+                    e.label.Visible = true
+                else
+                    e.box.Visible = false
+                    e.label.Visible = false
+                end
+            end
+        else
+            local e = Cache[inst]
+            if e then
+                e.box.Visible = false
+                e.label.Visible = false
+            end
+        end
+    end
+end
+
+RunService.RenderStepped:Connect(function()
+    drawList(eggList, cfg.espEggs, Color3.fromRGB(100, 220, 255))
+    drawList(playerList, cfg.espPlayers, Color3.fromRGB(255, 100, 100))
+end)
+
 -- ============================================================
---  SPEED
+--  Auto Collect — usa ProximityPrompt + touch, sem varrer tudo
 -- ============================================================
-RunService.Heartbeat:Connect(function()
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    if cfg.speed then
-        hum.WalkSpeed = cfg.speedVal
+task.spawn(function()
+    while SG.Parent do
+        if cfg.autoCollect then
+            local char = LP.Character
+            local hrp = char and char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                -- 1) ProximityPrompt (o mais comum hoje)
+                for _, obj in ipairs(Workspace:GetDescendants()) do
+                    if obj:IsA("ProximityPrompt") and obj.Enabled then
+                        local parent = obj.Parent
+                        if parent and parent:IsA("BasePart") then
+                            local d = (parent.Position - hrp.Position).Magnitude
+                            if d < cfg.collectRadius then
+                                pcall(function() fireproximityprompt(obj) end)
+                            end
+                        end
+                    end
+                end
+
+                -- 2) Touch parts
+                for _, obj in ipairs(eggList) do
+                    local part = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
+                    if part then
+                        local d = (part.Position - hrp.Position).Magnitude
+                        if d < cfg.collectRadius then
+                            pcall(function()
+                                firetouchinterest(hrp, part, 0)
+                                firetouchinterest(hrp, part, 1)
+                            end)
+                        end
+                    end
+                end
+            end
+        end
+        task.wait(0.15)
     end
 end)
