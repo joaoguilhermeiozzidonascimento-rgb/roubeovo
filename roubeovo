@@ -1,4 +1,3 @@
--- Evil - Roube um Ovo (versão leve)
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UIS = game:GetService("UserInputService")
@@ -11,7 +10,7 @@ local cfg = {
     espEggs = false,
     espPlayers = false,
     autoCollect = false,
-    collectRadius = 20,
+    collectRadius = 15,
 }
 
 pcall(function()
@@ -42,7 +41,7 @@ FStk.Thickness = 2
 
 -- Menu
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 400, 0, 360)
+Main.Size = UDim2.new(0, 400, 0, 340)
 Main.Position = UDim2.new(0, 120, 0, 80)
 Main.BackgroundColor3 = Color3.fromRGB(16, 16, 18)
 Main.BorderSizePixel = 0
@@ -202,37 +201,26 @@ toggle("Auto Collect", cfg.autoCollect, function(v) cfg.autoCollect = v end)
 slider("Collect Radius", 5, 100, cfg.collectRadius, function(v) cfg.collectRadius = v end)
 
 -- ============================================================
---  ESP — leve, cache atualizado a cada 1s
+--  ESP leve com scan de 2 em 2 segundos
 -- ============================================================
 local hasDrawing = pcall(function() return Drawing.new end)
 local Cache = {}
-local eggList = {}
+local eggsList = {}
 local playerList = {}
-
-local function createBox(color)
-    local b = Drawing.new("Square")
-    b.Thickness = 1
-    b.Filled = false
-    b.Transparency = 1
-    b.Visible = false
-    return b
-end
-
-local function createName(color)
-    local t = Drawing.new("Text")
-    t.Size = 13
-    t.Center = true
-    t.Outline = true
-    t.Visible = false
-    return t
-end
 
 local function ensureEntry(inst)
     if not Cache[inst] then
-        Cache[inst] = {
-            box = createBox(),
-            label = createName(),
-        }
+        local box = Drawing.new("Square")
+        box.Thickness = 1
+        box.Filled = false
+        box.Transparency = 1
+        box.Visible = false
+        local lbl = Drawing.new("Text")
+        lbl.Size = 13
+        lbl.Center = true
+        lbl.Outline = true
+        lbl.Visible = false
+        Cache[inst] = { box = box, lbl = lbl }
     end
     return Cache[inst]
 end
@@ -240,32 +228,34 @@ end
 local function removeEntry(inst)
     if Cache[inst] then
         pcall(function() Cache[inst].box:Remove() end)
-        pcall(function() Cache[inst].label:Remove() end)
+        pcall(function() Cache[inst].lbl:Remove() end)
         Cache[inst] = nil
     end
 end
 
--- Scan do mundo — roda 1x por segundo, não a cada frame
+-- Scan em background
 task.spawn(function()
     while SG.Parent do
-        local eggs, players = {}, {}
-
+        local eggs = {}
         for _, obj in ipairs(Workspace:GetChildren()) do
-            local n = obj.Name:lower()
-            if obj:IsA("Model") and (n:find("egg") or n:find("brainrot")) then
-                eggs[#eggs + 1] = obj
+            if obj:IsA("Model") then
+                local n = obj.Name:lower()
+                if n:find("egg") or n:find("brainrot") then
+                    eggs[#eggs + 1] = obj
+                end
             end
         end
+        eggsList = eggs
 
+        local pls = {}
         for _, p in ipairs(Players:GetPlayers()) do
             if p ~= LP and p.Character then
-                players[#players + 1] = p.Character
+                pls[#pls + 1] = p.Character
             end
         end
+        playerList = pls
 
-        eggList = eggs
-        playerList = players
-        task.wait(1)
+        task.wait(2)
     end
 end)
 
@@ -282,70 +272,66 @@ local function drawList(list, enabled, color)
                 if on then
                     local size = 40
                     e.box.Size = Vector2.new(size, size)
-                    e.box.Position = Vector2.new(pos.X - size/2, pos.Y - size/2)
+                    e.box.Position = Vector2.new(pos.X - size / 2, pos.Y - size / 2)
                     e.box.Color = color
                     e.box.Visible = true
-                    e.label.Text = inst.Name
-                    e.label.Position = Vector2.new(pos.X, pos.Y - size/2 - 14)
-                    e.label.Color = color
-                    e.label.Visible = true
+                    e.lbl.Text = inst.Name
+                    e.lbl.Position = Vector2.new(pos.X, pos.Y - size / 2 - 14)
+                    e.lbl.Color = color
+                    e.lbl.Visible = true
                 else
                     e.box.Visible = false
-                    e.label.Visible = false
+                    e.lbl.Visible = false
                 end
             end
         else
             local e = Cache[inst]
             if e then
                 e.box.Visible = false
-                e.label.Visible = false
+                e.lbl.Visible = false
             end
         end
     end
 end
 
 RunService.RenderStepped:Connect(function()
-    drawList(eggList, cfg.espEggs, Color3.fromRGB(100, 220, 255))
+    drawList(eggsList, cfg.espEggs, Color3.fromRGB(100, 220, 255))
     drawList(playerList, cfg.espPlayers, Color3.fromRGB(255, 100, 100))
 end)
 
 -- ============================================================
---  Auto Collect — usa ProximityPrompt + touch, sem varrer tudo
+--  AUTO COLLECT — usa ProximityPrompt (interação)
 -- ============================================================
 task.spawn(function()
+    local fired = {}
     while SG.Parent do
         if cfg.autoCollect then
             local char = LP.Character
             local hrp = char and char:FindFirstChild("HumanoidRootPart")
             if hrp then
-                -- 1) ProximityPrompt (o mais comum hoje)
-                for _, obj in ipairs(Workspace:GetDescendants()) do
-                    if obj:IsA("ProximityPrompt") and obj.Enabled then
-                        local parent = obj.Parent
-                        if parent and parent:IsA("BasePart") then
-                            local d = (parent.Position - hrp.Position).Magnitude
-                            if d < cfg.collectRadius then
-                                pcall(function() fireproximityprompt(obj) end)
+                for _, egg in ipairs(eggsList) do
+                    local part = egg:IsA("Model") and (egg.PrimaryPart or egg:FindFirstChildWhichIsA("BasePart")) or egg
+                    if part then
+                        local d = (part.Position - hrp.Position).Magnitude
+                        if d < cfg.collectRadius then
+                            -- acha ProximityPrompt dentro do egg e dispara UMA vez
+                            for _, desc in ipairs(egg:GetDescendants()) do
+                                if desc:IsA("ProximityPrompt") and desc.Enabled then
+                                    local key = egg
+                                    if not fired[key] then
+                                        fired[key] = true
+                                        pcall(function() fireproximityprompt(desc) end)
+                                        task.delay(1, function() fired[key] = nil end)
+                                    end
+                                end
                             end
                         end
                     end
                 end
-
-                -- 2) Touch parts
-                for _, obj in ipairs(eggList) do
-                    local part = obj:IsA("Model") and (obj.PrimaryPart or obj:FindFirstChildWhichIsA("BasePart")) or obj
-                    if part then
-                        local d = (part.Position - hrp.Position).Magnitude
-                        if d < cfg.collectRadius then
-                            pcall(function()
-                                firetouchinterest(hrp, part, 0)
-                                firetouchinterest(hrp, part, 1)
-                            end)
-                        end
-                    end
-                end
             end
+        else
+            fired = {}
         end
-        task.wait(0.15)
+        task.wait(0.2)
     end
 end)
